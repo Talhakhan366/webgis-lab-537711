@@ -1,7 +1,7 @@
 # District Explorer — Lab Report
 
-**Name:** Muhammad Talha Abdullah Khan
-**Roll number:** 537711
+**Name:** Muhammad Talha Abdullah Khan 
+**Roll number:** 537711  
 **Course:** GIS874 Web GIS, IGIS, NUST  
 
 **Live map:** https://talhakhan366.github.io/webgis-lab-537711/  

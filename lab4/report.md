@@ -1,7 +1,7 @@
 # Web GIS Lab 4: GeoDjango with PostGIS, the admin panel and Leaflet
 
-**Name:** Kinza Naeem
-**Roll number:** 538218
+**Name:** Muhammad Talha Abdullah Khan
+**Roll number:** 537711
 **Course:** Web GIS, MS Remote Sensing and GIS, IGIS, NUST
 
 The 160 districts from Labs 2 and 3 are now stored in a PostGIS database,
@@ -12,9 +12,25 @@ Django builds from the database on every request.
 
 ### Checkpoint 1: Python and a first Django project
 
+*Django install page at 127.0.0.1:8000*
+
+![Django install page at 127.0.0.1:8000](screenshots/01_cp1.png)
+
+*Admin login page at /admin/ (no user yet)*
+
+![Admin login page at /admin/ (no user yet)](screenshots/02_cp1.png)
+
 ### Checkpoint 2: PostgreSQL and PostGIS
 
+*pgAdmin: webgis database and the result of postgis_full_version()*
+
+![pgAdmin: webgis database and the result of postgis_full_version()](screenshots/03_cp2.png)
+
 ### Checkpoint 3: Django connected to PostGIS
+
+*pgAdmin: Django's tables in webgis after migrate*
+
+![pgAdmin: Django's tables in webgis after migrate](screenshots/04_cp3.png)
 
 ```
 > python manage.py shell -c "...gdal_version(), geos_version()"
@@ -24,13 +40,17 @@ b'3.13.3' b'3.15.0-CAPI-1.21.0'
 System check identified no issues (0 silenced).
 
 > python manage.py migrate   (run again now, so nothing is left to apply)
-[36;1mOperations to perform:[0m
-[1m  Apply all migrations: [0madmin, auth, contenttypes, districts, sessions
-[36;1mRunning migrations:[0m
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, districts, sessions
+Running migrations:
   No migrations to apply.
 ```
 
 ### Checkpoint 4: A model with a geometry
+
+*pgAdmin: columns of the districts_district table*
+
+![pgAdmin: columns of the districts_district table](screenshots/05_cp4.png)
 
 Output of `python manage.py sqlmigrate districts 0001`:
 
@@ -49,6 +69,10 @@ The `geometry(MULTIPOLYGON,4326)` column is a real PostGIS geometry column, and 
 
 ### Checkpoint 5: Loading the districts
 
+*Loader and ORM shell output*
+
+![Loader and ORM shell output](screenshots/06_cp5.png)
+
 ```
 Loader (layer as read by GDAL, and rows now in PostGIS):
 districts_C : 160 features, MultiPolygon geometry
@@ -65,11 +89,55 @@ lahore.geom.num_coords -> 231
 
 ### Checkpoint 6: The admin panel
 
+*Admin district list filtered to one province*
+
+![Admin district list filtered to one province](screenshots/07_cp6.png)
+
+*Admin district list: search and sort*
+
+![Admin district list: search and sort](screenshots/08_cp6.png)
+
+*Lahore's admin page with its map*
+
+![Lahore's admin page with its map](screenshots/09_cp6.png)
+
+*pgAdmin query showing Lahore's changed population*
+
+![pgAdmin query showing Lahore's changed population](screenshots/10_cp6.png)
+
+*Lahore's change history in the admin*
+
+![Lahore's change history in the admin](screenshots/11_cp6.png)
+
 ### Checkpoint 7: Leaflet, fed by Django
+
+*First load: districts drawn, but OSM tiles blocked (error 9 below)*
+
+![First load: districts drawn, but OSM tiles blocked (error 9 below)](screenshots/12_cp7.png)
+
+*Network tab: api/districts/ request, 994,748 bytes*
+
+![Network tab: api/districts/ request, 994,748 bytes](screenshots/13_cp7.png)
+
+*Map drawn from the Django API, with a tooltip*
+
+![Map drawn from the Django API, with a tooltip](screenshots/14_cp7.png)
 
 The api/districts/ response is 994,748 bytes (about 995 kB), built from PostGIS on each request.
 
 ### Checkpoint 8: Asking PostGIS a spatial question (extension)
+
+*Popup from clicking the map (PostGIS point query)*
+
+![Popup from clicking the map (PostGIS point query)](screenshots/15_cp8.png)
+
+*pgAdmin: ST_Contains point query*
+
+![pgAdmin: ST_Contains point query](screenshots/16_cp8.png)
+
+*pgAdmin: area comparison query*
+
+![pgAdmin: area comparison query](screenshots/17_cp8.png)
 
 Point (72.9906, 33.6423) is in: [('Islamabad', 'Islamabad')]
 
@@ -84,7 +152,7 @@ Point (72.9906, 33.6423) is in: [('Islamabad', 'Islamabad')]
 | PostGIS | 3.6.2 |
 | GDAL | 3.13.3 |
 | GEOS | 3.15.0-CAPI-1.21.0 |
-| PROJ | 8.2.1 NETWORK_ENABLED=OFF URL_ENDPOINT= USER_WRITABLE_DIRECTORY=C:\WINDOWS\ServiceProfiles\NetworkService\AppData\Local/proj |
+| PROJ (inside PostGIS) | 8.2.1 |
 | Spatial libraries taken from | QGIS 3.44.15 (OSGeo4W not used) |
 
 Database contents: 160 districts, 29 in Sindh, 25 without a 2023 census figure.
@@ -154,13 +222,19 @@ SQL, both through `/api/where/` and when run by hand in pgAdmin.
 
 **4. What would happen without wrapping some geometries in a MultiPolygon?**
 
-The `geom` column is `geometry(MULTIPOLYGON,4326)`, so it accepts only
-multipolygons. The file holds 152 Polygon features and 8 MultiPolygon
-features. Without the wrap, the first Polygon insert would be rejected
-because its geometry type does not match the column type, the script would
-stop with an error, and the table would be left incomplete. Wrapping a
-polygon as a one-part multipolygon changes nothing on the map but matches
-the column type.
+The `geom` column is `geometry(MULTIPOLYGON,4326)`, so PostGIS accepts
+only multipolygons in it. The handout's file mixes 152 Polygon and 8
+MultiPolygon features, which is why GDAL reports such a layer as Unknown.
+Without the wrap, the first plain Polygon would be rejected because its
+type does not match the column type, the script would stop with an error,
+and the table would be left incomplete.
+
+On this machine, GDAL read every feature of `districts.geojson` as
+MultiPolygon (see Checkpoint 5: 160 features, MultiPolygon geometry), so
+the wrap was never triggered here and all 160 rows loaded directly. The
+check is still needed for any file that contains single polygons, and it
+costs nothing when there are none. Wrapping a polygon as a one-part
+multipolygon changes nothing on the map but satisfies the column type.
 
 **5. Who should have an admin login for a district dataset like this, and who should not?**
 
